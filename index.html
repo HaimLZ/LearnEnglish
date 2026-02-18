@@ -48,7 +48,7 @@
 
   .container {
     position: relative; z-index: 1;
-    width: 100%; max-width: 600px;
+    width: 100%; max-width: 980px;
     padding: 16px;
     display: flex; flex-direction: column; align-items: center;
     gap: 20px;
@@ -105,6 +105,69 @@
     display: flex; flex-direction: column; align-items: center;
     gap: 16px;
     box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  }
+  .game-layout {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1.9fr) minmax(240px, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+
+  /* Misspelling history */
+  .misspell-card {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius);
+    padding: 14px 14px 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+  .misspell-title {
+    font-family: 'Baloo 2', cursive;
+    font-size: 1.1rem;
+    color: #fcd34d;
+    margin-bottom: 8px;
+  }
+  .misspell-note {
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+  }
+  .misspell-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+  .misspell-item {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+  }
+  .misspell-word {
+    color: #fde68a;
+    font-weight: 800;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+  }
+  .misspell-attempts {
+    color: #fca5a5;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+  .misspell-empty {
+    color: var(--muted);
+    font-size: 0.83rem;
+    border: 1px dashed rgba(255,255,255,0.16);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
   }
 
   /* Speak button */
@@ -434,6 +497,10 @@
     .letter-box { width: 30px; height: 30px; font-size: 1rem; }
     .speak-btn { padding: 12px 22px; font-size: 1rem; }
   }
+  @media (max-width: 900px) {
+    .game-layout { grid-template-columns: 1fr; }
+    .misspell-list { max-height: 220px; }
+  }
 </style>
 </head>
 <body>
@@ -453,46 +520,54 @@
     <div class="score-pill"><div class="label">Words</div><div class="value" id="wordsVal">0</div></div>
   </div>
 
-  <!-- Main game card -->
-  <div class="word-card">
-    <button class="speak-btn" id="speakBtn" onclick="speakWord()">
-      <span class="speaker-icon">🔊</span>
-      <span>Hear the Word</span>
-    </button>
+  <!-- Main game area -->
+  <div class="game-layout">
+    <div class="word-card">
+      <button class="speak-btn" id="speakBtn" onclick="speakWord()">
+        <span class="speaker-icon">🔊</span>
+        <span>Hear the Word</span>
+      </button>
 
-    <!-- Failure dots -->
-    <div class="failure-dots" id="failureDots"></div>
+      <!-- Failure dots -->
+      <div class="failure-dots" id="failureDots"></div>
 
-    <!-- Letter hint boxes -->
-    <div class="hint-area" id="hintArea"></div>
+      <!-- Letter hint boxes -->
+      <div class="hint-area" id="hintArea"></div>
 
-    <!-- Input -->
-    <div class="input-row">
-      <input type="text" id="wordInput" placeholder="Type the word…" autocomplete="off"
-             autocorrect="off" autocapitalize="none" spellcheck="false"
-             onkeydown="handleKey(event)" />
-      <button class="submit-btn" onclick="checkWord()" title="Submit">✓</button>
+      <!-- Input -->
+      <div class="input-row">
+        <input type="text" id="wordInput" placeholder="Type the word…" autocomplete="off"
+               autocorrect="off" autocapitalize="none" spellcheck="false"
+               onkeydown="handleKey(event)" />
+        <button class="submit-btn" onclick="checkWord()" title="Submit">✓</button>
+      </div>
+
+      <div class="feedback" id="feedback">Press 🔊 to hear the word, then spell it!</div>
+
+      <div class="steps-track" id="stepsTrack">
+        <div class="step-pill active" id="stepSpell">1) Spell</div>
+        <div class="step-pill" id="stepTense">2) V1 / V2</div>
+        <div class="step-pill" id="stepHebrew">3) Hebrew</div>
+      </div>
+
+      <div class="stage-section" id="tenseSection">
+        <div class="stage-label">Choose the correct form:</div>
+        <div class="options-grid" id="tenseOptions"></div>
+      </div>
+
+      <div class="stage-section" id="hebrewSection">
+        <div class="stage-label">Choose the matching Hebrew meaning:</div>
+        <div class="options-grid hebrew" id="hebrewOptions"></div>
+      </div>
+
+      <button class="next-inline-btn" id="nextInlineBtn" onclick="nextWord()">Next Word →</button>
     </div>
 
-    <div class="feedback" id="feedback">Press 🔊 to hear the word, then spell it!</div>
-
-    <div class="steps-track" id="stepsTrack">
-      <div class="step-pill active" id="stepSpell">1) Spell</div>
-      <div class="step-pill" id="stepTense">2) V1 / V2</div>
-      <div class="step-pill" id="stepHebrew">3) Hebrew</div>
-    </div>
-
-    <div class="stage-section" id="tenseSection">
-      <div class="stage-label">Choose the correct form:</div>
-      <div class="options-grid" id="tenseOptions"></div>
-    </div>
-
-    <div class="stage-section" id="hebrewSection">
-      <div class="stage-label">Choose the matching Hebrew meaning:</div>
-      <div class="options-grid hebrew" id="hebrewOptions"></div>
-    </div>
-
-    <button class="next-inline-btn" id="nextInlineBtn" onclick="nextWord()">Next Word →</button>
+    <aside class="misspell-card">
+      <div class="misspell-title">✍️ Misspell History</div>
+      <div class="misspell-note">For each target word, shows all wrong spellings typed so far.</div>
+      <ul class="misspell-list" id="misspellList"></ul>
+    </aside>
   </div>
 
   <!-- Word pool editor -->
@@ -573,6 +648,7 @@ let wordPlayed = false; // The user must hear the spoken word before typing.
 let stage = "spelling"; // spelling -> tense -> hebrew -> complete
 let englishVoices = [];
 let lastVoiceURI = "";
+const misspellAttemptsByWord = {};
 
 // ── Audio (Web Audio API) ──────────────────────
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -725,6 +801,12 @@ function startNewWord() {
 }
 
 function nextWord() {
+  // The side misspell history is intended to describe only the current round,
+  // so we wipe all recorded attempts before loading the next target word.
+  Object.keys(misspellAttemptsByWord).forEach((wordKey) => {
+    delete misspellAttemptsByWord[wordKey];
+  });
+  renderMisspellList();
   startNewWord();
 }
 
@@ -760,6 +842,8 @@ function checkWord() {
     setFeedback("✅ Correct spelling! Now choose the right form (V1 or V2).", "good");
   } else {
     failures++;
+    // Persist each wrong typed spelling under the active target word for side history review.
+    recordMisspellAttempt(currentPromptWord, typed);
     playTone("error");
     input.value = "";
     input.classList.add("shake");
@@ -779,6 +863,50 @@ function checkWord() {
 
     if (failures === 3 || failures === 6) setTimeout(speakWord, 400);
   }
+}
+
+function recordMisspellAttempt(targetWord, attemptedWord) {
+  const wordKey = String(targetWord || "").trim().toLowerCase();
+  const attemptValue = String(attemptedWord || "").trim().toLowerCase();
+  if (!wordKey || !attemptValue) return;
+
+  // Keep insertion order by creating an array once and appending every attempt (including repeats).
+  if (!Array.isArray(misspellAttemptsByWord[wordKey])) misspellAttemptsByWord[wordKey] = [];
+  misspellAttemptsByWord[wordKey].push(attemptValue);
+  renderMisspellList();
+}
+
+function renderMisspellList() {
+  const listEl = document.getElementById("misspellList");
+  if (!listEl) return;
+  listEl.innerHTML = "";
+
+  const words = Object.keys(misspellAttemptsByWord);
+  if (words.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "misspell-empty";
+    empty.textContent = "No misspellings yet.";
+    listEl.appendChild(empty);
+    return;
+  }
+
+  // Show most recently updated words first so current practice mistakes stay visible.
+  words.reverse().forEach((word) => {
+    const row = document.createElement("li");
+    row.className = "misspell-item";
+
+    const title = document.createElement("div");
+    title.className = "misspell-word";
+    title.textContent = word.toUpperCase();
+
+    const attempts = document.createElement("div");
+    attempts.className = "misspell-attempts";
+    attempts.textContent = misspellAttemptsByWord[word].join(", ");
+
+    row.appendChild(title);
+    row.appendChild(attempts);
+    listEl.appendChild(row);
+  });
 }
 
 function renderTenseOptions() {
@@ -1041,6 +1169,7 @@ function savePool() {
 createStars();
 initVoices();
 loadPool();
+renderMisspellList();
 updateScoreDisplay();
 startNewWord();
 </script>
