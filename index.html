@@ -548,6 +548,7 @@
     <div class="emoji">🏁</div>
     <h2>Challenge Complete!</h2>
     <p>Your Final Score: <strong id="challengeFinalScore">0</strong></p>
+    <p>Your Final Streak: <strong id="challengeFinalStreak">0</strong></p>
     <div class="modal-actions">
       <button class="next-btn share-btn" onclick="shareFinalScore()">Share Score</button>
       <button class="next-btn" onclick="dismissChallengeCompleteAndRestart()">Start Over</button>
@@ -689,7 +690,7 @@ const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.1.0.0";
+const VERSION = "1.1.0.1";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
@@ -708,6 +709,7 @@ const misspellAttemptsByWord = {};
 let remainingPrompts = [];
 const attemptedPromptKeys = new Set();
 let finalChallengeScore = 0;
+let finalChallengeStreak = 0;
 let speechStyleIndex = -1;
 const SPEECH_STYLES = [
   { rate: 0.75, pitch: 0.95 },
@@ -858,21 +860,93 @@ function isChallengeComplete() {
 function showChallengeCompleteThenRestart() {
   // Store final score before reset so both UI and share action use the same value.
   finalChallengeScore = score;
+  finalChallengeStreak = streak;
   const finalMessage = `Challenge Complete! Your Final Score: ${finalChallengeScore}`;
   setFeedback(finalMessage, "good");
 
   const overlay = document.getElementById("challengeOverlay");
   const finalScoreEl = document.getElementById("challengeFinalScore");
+  const finalStreakEl = document.getElementById("challengeFinalStreak");
   if (finalScoreEl) finalScoreEl.textContent = String(finalChallengeScore);
+  if (finalStreakEl) finalStreakEl.textContent = String(finalChallengeStreak);
   if (overlay) overlay.classList.add("active");
 }
 
-async function shareFinalScore() {
-  const shareText = `My Word Wizard Score Is ${finalChallengeScore}! Can you beat me? https://haimlz.github.io/LearnEnglish/`;
+function buildShareScoreImageFile() {
+  // Build a square score card image for chat apps that preview shared images.
+  const canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = 1080;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return Promise.resolve(null);
 
-  // Try native share first for mobile-friendly share sheets.
+  // Reuse the app palette so shared media feels consistent with the game.
+  const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  bg.addColorStop(0, "#0f172a");
+  bg.addColorStop(1, "#1e293b");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.strokeStyle = "rgba(245,158,11,0.55)";
+  ctx.lineWidth = 10;
+  ctx.strokeRect(36, 36, canvas.width - 72, canvas.height - 72);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#f8fafc";
+  ctx.font = "700 70px Nunito, Arial, sans-serif";
+  ctx.fillText("Word Wizard", canvas.width / 2, 170);
+
+  ctx.fillStyle = "#fbbf24";
+  ctx.font = "900 96px Nunito, Arial, sans-serif";
+  ctx.fillText("Challenge Complete", canvas.width / 2, 300);
+
+  ctx.fillStyle = "#cbd5e1";
+  ctx.font = "700 50px Nunito, Arial, sans-serif";
+  ctx.fillText("Total Score", canvas.width / 2, 445);
+
+  ctx.fillStyle = "#34d399";
+  ctx.font = "900 170px Nunito, Arial, sans-serif";
+  ctx.fillText(String(finalChallengeScore), canvas.width / 2, 605);
+
+  ctx.fillStyle = "#cbd5e1";
+  ctx.font = "700 50px Nunito, Arial, sans-serif";
+  ctx.fillText("Final Streak", canvas.width / 2, 730);
+
+  ctx.fillStyle = "#f59e0b";
+  ctx.font = "900 130px Nunito, Arial, sans-serif";
+  ctx.fillText(String(finalChallengeStreak), canvas.width / 2, 870);
+
+  ctx.fillStyle = "rgba(148,163,184,0.9)";
+  ctx.font = "600 34px Nunito, Arial, sans-serif";
+  ctx.fillText(`Version ${VERSION}`, canvas.width / 2, 980);
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        resolve(null);
+        return;
+      }
+      resolve(new File([blob], "word-wizard-score.png", { type: "image/png" }));
+    }, "image/png");
+  });
+}
+
+async function shareFinalScore() {
+  const shareText = `My Word Wizard Score Is ${finalChallengeScore}!`;
+  const shareImage = await buildShareScoreImageFile();
+
+  // Try rich share first so devices can attach the score image automatically.
   if (navigator.share) {
     try {
+      if (shareImage && navigator.canShare && navigator.canShare({ files: [shareImage] })) {
+        await navigator.share({
+          text: shareText,
+          files: [shareImage]
+        });
+        return;
+      }
+
+      // If file sharing is unsupported, fallback to plain text share.
       await navigator.share({ text: shareText });
       return;
     } catch (error) {
@@ -991,6 +1065,7 @@ function startOverGame() {
   speechStyleIndex = -1;
   currentPromptKey = "";
   finalChallengeScore = 0;
+  finalChallengeStreak = 0;
   localStorage.removeItem(SCORE_KEY);
 
   // Clear all tracked misspellings so historical side data also starts clean.
