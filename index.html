@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>🌟 Word Wizard – Spelling Adventure</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<!-- Google Analytics 4 tag to track page usage and engagement metrics in production. -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TM219SRS9G"></script>
+<script>
+  // dataLayer buffers analytics events until GA is fully loaded.
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  // Configure GA4 with your measurement ID.
+  gtag('config', 'G-TM219SRS9G');
+</script>
 <style>
   :root {
     --sky: #0f172a;
@@ -700,7 +710,7 @@ const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.2.0.1";
+const VERSION = "1.2.0.2";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
