@@ -599,6 +599,12 @@
       <!-- Letter hint boxes -->
       <div class="hint-area" id="hintArea"></div>
 
+      <div class="steps-track" id="stepsTrack">
+        <div class="step-pill active" id="stepSpell">1) Spell</div>
+        <div class="step-pill" id="stepTense">2) V1 / V2</div>
+        <div class="step-pill" id="stepHebrew">3) Hebrew</div>
+      </div>
+
       <!-- Input -->
       <div class="input-row">
         <input type="text" id="wordInput" placeholder="Type the word…" autocomplete="off"
@@ -608,12 +614,6 @@
       </div>
 
       <div class="feedback" id="feedback">Press 🔊 to hear the word, then spell it!</div>
-
-      <div class="steps-track" id="stepsTrack">
-        <div class="step-pill active" id="stepSpell">1) Spell</div>
-        <div class="step-pill" id="stepTense">2) V1 / V2</div>
-        <div class="step-pill" id="stepHebrew">3) Hebrew</div>
-      </div>
 
       <div class="stage-section" id="tenseSection">
         <div class="stage-label">Choose the correct form:</div>
@@ -700,7 +700,7 @@ const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.1.0.6";
+const VERSION = "1.1.0.7";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
