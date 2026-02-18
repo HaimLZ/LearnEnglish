@@ -203,6 +203,16 @@
   .speak-btn .speaker-icon { font-size: 1.5rem; animation: none; }
   .speak-btn.speaking .speaker-icon { animation: pulse 0.5s ease-in-out infinite alternate; }
   @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.3); } }
+  .action-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .action-row .speak-btn {
+    width: 100%;
+    justify-content: center;
+  }
 
   /* Hint area */
   .hint-area {
@@ -538,10 +548,16 @@
   <!-- Main game area -->
   <div class="game-layout">
     <div class="word-card">
-      <button class="speak-btn" id="speakBtn" onclick="speakWord()">
-        <span class="speaker-icon">🔊</span>
-        <span>Hear the Word</span>
-      </button>
+      <div class="action-row">
+        <button class="speak-btn" id="speakBtn" onclick="speakWord()">
+          <span class="speaker-icon">🔊</span>
+          <span>Hear the Word</span>
+        </button>
+        <button class="speak-btn" onclick="startOverGame()">
+          <span>🔄</span>
+          <span>Start Over</span>
+        </button>
+      </div>
 
       <!-- Failure dots -->
       <div class="failure-dots" id="failureDots"></div>
@@ -847,6 +863,30 @@ function nextWord() {
   });
   renderMisspellList();
   startNewWord();
+}
+
+function startOverGame() {
+  // Reset every accumulated game-progress metric to create a fully fresh session.
+  score = 0;
+  streak = 0;
+  wordsPlayed = 0;
+  failures = 0;
+  wordPlayed = false;
+  stage = "spelling";
+  speechStyleIndex = -1;
+  localStorage.removeItem(SCORE_KEY);
+  updateScoreDisplay();
+
+  // Clear all tracked misspellings so historical side data also starts clean.
+  Object.keys(misspellAttemptsByWord).forEach((wordKey) => {
+    delete misspellAttemptsByWord[wordKey];
+  });
+  renderMisspellList();
+
+  // Ensure any queued or ongoing speech is cancelled before starting the new round.
+  speechSynthesis.cancel();
+  startNewWord();
+  setFeedback("🔄 Fresh start! Score, streak, words, and attempts were reset.", "info");
 }
 
 function handleKey(e) {
