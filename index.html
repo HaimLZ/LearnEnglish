@@ -190,7 +190,7 @@
     border-radius: 999px;
     padding: 14px 32px;
     font-family: 'Baloo 2', cursive;
-    font-size: 0.9rem;
+    font-size: 1.089rem;
     font-weight: 700;
     color: #1a1a1a;
     display: flex; align-items: center; gap: 10px;
@@ -206,12 +206,15 @@
   .action-row {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 3fr 2fr;
     gap: 10px;
   }
   .action-row .speak-btn {
     width: 100%;
     justify-content: center;
+  }
+  .action-row .speak-btn span:last-child {
+    white-space: nowrap;
   }
 
   /* Hint area */
@@ -528,7 +531,7 @@
 
   @media (max-width: 400px) {
     .letter-box { width: 30px; height: 30px; font-size: 1rem; }
-    .speak-btn { padding: 12px 22px; font-size: 0.75rem; }
+    .speak-btn { padding: 12px 22px; font-size: 0.9075rem; }
   }
   @media (max-width: 900px) {
     .game-layout { grid-template-columns: 1fr; }
@@ -690,7 +693,7 @@ const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.1.0.2";
+const VERSION = "1.1.0.4";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
