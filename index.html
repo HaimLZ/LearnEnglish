@@ -649,6 +649,13 @@ let stage = "spelling"; // spelling -> tense -> hebrew -> complete
 let englishVoices = [];
 let lastVoiceURI = "";
 const misspellAttemptsByWord = {};
+let speechStyleIndex = -1;
+const SPEECH_STYLES = [
+  { rate: 0.8, pitch: 0.95 },
+  { rate: 0.9, pitch: 1.05 },
+  { rate: 0.74, pitch: 1.15 },
+  { rate: 0.86, pitch: 0.9 }
+];
 
 // ── Audio (Web Audio API) ──────────────────────
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -690,9 +697,11 @@ function playTone(type) {
 
 // ── TTS ────────────────────────────────────────
 function refreshEnglishVoices() {
-  // Restrict the pool to English voices because all prompts are English verbs.
+  // Mobile browsers sometimes expose only one English voice.
+  // If that happens, fallback to the full voice list so rotation can still happen.
   const allVoices = speechSynthesis.getVoices();
-  englishVoices = allVoices.filter((voice) => (voice.lang || "").toLowerCase().startsWith("en"));
+  const englishOnly = allVoices.filter((voice) => (voice.lang || "").toLowerCase().startsWith("en"));
+  englishVoices = englishOnly.length > 0 ? englishOnly : allVoices;
 }
 
 function getRotatingVoice() {
@@ -712,6 +721,17 @@ function initVoices() {
   speechSynthesis.onvoiceschanged = () => refreshEnglishVoices();
 }
 
+function getNextSpeechStyle(hasMultipleVoices) {
+  if (hasMultipleVoices) {
+    // Keep a neutral style when we already rotate by voice identity.
+    return { rate: 0.82, pitch: 1.05 };
+  }
+
+  // With a single voice, rotate rate/pitch presets so each press sounds different.
+  speechStyleIndex = (speechStyleIndex + 1) % SPEECH_STYLES.length;
+  return SPEECH_STYLES[speechStyleIndex];
+}
+
 function speakWord() {
   if (!currentPromptWord) return;
   wordPlayed = true;
@@ -719,8 +739,10 @@ function speakWord() {
   btn.classList.add("speaking");
 
   // The spoken prompt always matches the randomly chosen visible target (V1 or V2).
+  refreshEnglishVoices();
   const utt = new SpeechSynthesisUtterance(currentPromptWord);
   const selectedVoice = getRotatingVoice();
+  const style = getNextSpeechStyle(englishVoices.length > 1);
   if (selectedVoice) {
     utt.voice = selectedVoice;
     utt.lang = selectedVoice.lang || "en-US";
@@ -728,8 +750,8 @@ function speakWord() {
   } else {
     utt.lang = "en-US";
   }
-  utt.rate = 0.82;
-  utt.pitch = 1.05;
+  utt.rate = style.rate;
+  utt.pitch = style.pitch;
   utt.onend = () => btn.classList.remove("speaking");
   utt.onerror = () => btn.classList.remove("speaking");
   speechSynthesis.cancel();
