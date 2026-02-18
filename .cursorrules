@@ -1,0 +1,355 @@
+
+## 🔒 SAFETY & PRIVACY (NON-NEGOTIABLE)
+
+### Secret Management
+- **NEVER** output, request, or include: API keys, tokens, private keys, .env files, customer data, credentials, production logs, passwords
+- Assume all code/context may be sent in AI requests
+- Always use .cursorignore and .gitignore for sensitive paths
+
+### Destructive Actions Prevention
+- **DO NOT** change, modify or delete the .cursorrules file under any circumstances
+- **DO NOT** run shell commands that delete/overwrite without explicit request
+- **DO NOT** modify lockfiles or dependency trees unless explicitly requested
+- **DO NOT** change formatting across entire repo unless explicitly requested
+
+### Security Scanning
+- Always check for: SQL injection, XSS, CSRF, path traversal, command injection
+- Never introduce insecure defaults (open CORS, weak crypto, eval patterns)
+
+## 🎯 INTERACTION STYLE
+
+### Request Structure (Always Provide)
+When asking for changes, include:
+1. **Goal**: What outcome you want
+
+### Ambiguity Handling
+- If requirements are ambiguous: Ask 1-3 targeted questions
+- Otherwise: State assumptions clearly and proceed with best defaults
+
+### Before/After Pattern
+- **Before big edits**: Propose a short plan (3-7 bullets)
+- **After edits**: Summarize what changed + why + how to test
+
+## ⚡ CODE QUALITY STANDARDS
+
+### Core Principles
+- Avoid code replications, use existing functions, classes or consts if possible and makes sense
+- If there is a VERSION constant in the code set with Major.Minor.Build.Revision (exmple: 2.1.5.9), each time you make any code change increment the Revision by 1
+
+### Code Completeness
+- **NO PLACEHOLDERS** - write complete code, never use `// ... rest of code`
+- Include all necessary imports/dependencies
+- Provide full implementations
+
+### Function Design
+- Keep functions small and focused (single responsibility)
+- Descriptive names that clearly indicate purpose
+
+## 📝 LANGUAGE-SPECIFIC RULES
+
+### JavaScript / TypeScript
+**Type Safety**
+- **Always use TypeScript** - never plain JavaScript
+- Prefer `interface` over `type` for object shapes
+- Never use `any` - use `unknown` or proper types
+- Use type guards and type predicates
+- Use strict mode in tsconfig.json
+
+**Modern Syntax**
+- Use `const` over `let`, **never** `var`
+- Use async/await over raw promises
+- Destructure objects and arrays
+- Use optional chaining (`?.`) and nullish coalescing (`??`)
+- Arrow functions appropriately
+- No floating promises - always await or handle
+
+**Imports**
+- Group: 1) Standard library, 2) 3rd party, 3) Internal modules
+- Sort alphabetically within groups
+
+### HTML & CSS
+**HTML**
+- Use **Semantic HTML5**: `<main>`, `<section>`, `<article>`, `<nav>`, `<header>`, `<footer>`
+- Ensure **ARIA labels** for accessibility
+- Proper heading hierarchy (h1 → h6)
+
+**CSS**
+- Use **BEM naming convention** (if using vanilla CSS/SASS)
+- **Mobile-first responsive design**
+- Keep CSS specificity low
+- Use CSS custom properties for theming
+- Use CSS Grid and Flexbox appropriately
+- Avoid inline styles
+- Minimize reflows/repaints for performance
+
+
+## 🏗️ ARCHITECTURE & PATTERNS
+
+## 📚 DOCUMENTATION
+
+### Code Comments
+- Document "WHY" not "WHAT" - code shows what it does
+- Keep comments updated with code changes
+
+### API Documentation
+- Use JSDoc/Javadoc/docstrings for public APIs
+- Include examples in documentation
+
+## 🔄 GIT PRACTICES
+
+### Commits
+- Conventional commits: `type(scope): description`
+- Types: feat, fix, docs, style, refactor, test, chore
+- Imperative mood: "Add feature" not "Added feature"
+- Subject line under 50 characters
+
+## ⚡ PERFORMANCE
+
+### General
+- Profile before optimizing
+- Focus on algorithmic improvements first
+- Avoid premature optimization
+- Use appropriate data structures
+
+### Frontend-Specific
+- Code splitting
+- Lazy loading
+- Optimize images/assets
+- Minimize bundle size
+
+## 🎨 RESPONSE FORMAT
+
+### Code Delivery
+- Include necessary imports (grouped and sorted)
+- Add inline comments for anything which needs explainig why or how or is related to a different section of the code
+- Mention trade-offs or alternatives when relevant
+- Include error handling
+- Provide usage examples when helpful
+
+## 📋 CURSOR.md MAINTENANCE (Project Memory File)
+
+### Purpose & Philosophy
+- Maintain a **living `CURSOR.md` file** as persistent project memory (similar to Claude Code's CLAUDE.md)
+- Division of responsibility:
+  - `.cursorrules` = HOW to write code (standards, patterns, syntax)
+  - `CURSOR.md` = WHAT the project is (context, architecture, domain)
+
+### Automatic Update Triggers
+**ALWAYS update CURSOR.md when ANY of these occur:**
+
+**Architecture Changes:**
+- New services, microservices, or major components added
+- Database changes (schema, migration to different DB)
+- Authentication/authorization changes
+- New design patterns introduced
+→ Update: "Architecture Decisions" section
+
+**Technology Stack Changes:**
+- New framework, library, or tool added
+- Version upgrades with breaking changes
+- Build tool or package manager changes
+→ Update: "Tech Stack" section
+
+**Workflow Changes:**
+- New development, testing, or deployment procedures
+- Branch strategy changes
+- CI/CD pipeline modifications
+→ Update: "Workflows" section
+
+**Domain Knowledge:**
+- New business entities or concepts
+- Industry jargon or acronyms introduced
+- Domain-specific terminology
+→ Update: "Domain-Specific Terminology" section
+
+**Known Issues Discovered:**
+- Bug workarounds
+- Performance bottlenecks identified
+- Third-party service limitations
+→ Update: "Known Issues & Gotchas" section
+
+**Custom Tools Created:**
+- New scripts in `/scripts` or `/tools`
+- CLI utilities developed
+- Build or deployment automation
+→ Update: "Custom Tools & Scripts" section
+
+### CURSOR.md Structure Template
+```markdown
+# CURSOR.md
+> Project memory file for Cursor AI - Updated: [YYYY-MM-DD]
+
+## Project Overview
+**Name**: [Project Name]
+**Purpose**: [1-2 sentence description]
+**Status**: [Development stage]
+
+## Tech Stack
+- **Languages**: [Primary languages]
+- **Frontend**: [If applicable]
+- **Backend**: [If applicable]
+- **Database**: [Type and version]
+- **Testing**: [Frameworks]
+- **Build Tools**: [Tools used]
+- **Deployment**: [Platform/service]
+
+## Project Structure
+[Tree showing key directories with descriptions]
+
+## Architecture Decisions
+- **[Decision]**: [Why chosen, trade-offs]
+
+## Coding Conventions
+[Project-specific naming, file organization, patterns]
+
+## Custom Tools & Scripts
+### [Tool Name]
+**Location**: [Path]
+**Purpose**: [What it does]
+**Usage**: [Command]
+**When to use**: [Scenarios]
+
+## Workflows
+### [Workflow Name]
+[Step-by-step process]
+
+## File Boundaries
+### MUST Read
+[Critical files to understand]
+
+### NEVER Read
+[Files to exclude - secrets, generated code, dependencies]
+
+## Domain-Specific Terminology
+**[Term]**: [Definition and code mapping]
+
+## Known Issues & Gotchas
+**[Issue]**: [Description, workaround, status]
+
+## External Resources
+[Links to docs, APIs, wikis]
+```
+
+### Context Optimization Rules
+1. **Keep under 1000 lines** - longer degrades performance
+2. **Focus on WHY not HOW** - code shows how, CURSOR.md explains why
+3. **Universal applicability** - only include info useful across all tasks
+4. **No detailed code style** - that's what `.cursorrules` is for
+5. **Use progressive disclosure** - point to docs, don't duplicate them
+6. **Keep examples short** - 5-10 lines max
+
+### What NEVER Belongs in CURSOR.md
+❌ Detailed code style rules (use linters and `.cursorrules`)
+❌ Complete API documentation (provide links instead)
+❌ Every possible command (document common ones only)
+❌ Entire configuration files (reference them with @path)
+❌ Implementation details (keep high-level)
+❌ Temporary notes or TODOs (use issues/tickets)
+❌ Extensive code examples (show patterns, not full implementations)
+
+### Progressive Disclosure Pattern
+Instead of dumping all information, use pointers:
+- ✅ "For database schema details, see @docs/database.md"
+- ✅ "For API endpoints, see @openapi.yaml"
+- ✅ "For deployment procedures, see @docs/deployment.md"
+- ❌ Don't paste entire docs into CURSOR.md
+
+### Update Proposal Pattern
+Before making LARGE CURSOR.md updates, propose:
+```
+I noticed [CHANGE/DISCOVERY]. This should be documented in CURSOR.md.
+
+Proposed addition to [SECTION]:
+[Show the specific addition]
+
+Is this the right level of detail?
+```
+
+### Alternative Locations
+- **Project root**: `CURSOR.md` (default, commit to version control)
+- **Hidden directory**: `.cursor/CURSOR.md` (alternative)
+- **Personal overrides**: `cursor.local.md` (add to .gitignore, not shared)
+
+### File Imports (Advanced)
+CURSOR.md can import using @path syntax:
+```markdown
+See @README.md for project overview
+See @docs/architecture.md for system design
+```
+
+### Modular Rules (Large Projects)
+```
+.cursor/
+├── CURSOR.md              # Main project memory
+└── rules/
+    ├── frontend.md        # Frontend-specific context
+    ├── backend.md         # Backend-specific context
+    └── testing.md         # Testing conventions
+```
+
+### Maintenance Checklist
+When updating CURSOR.md, verify:
+- [ ] Date updated in header
+- [ ] No sensitive information (secrets, keys, credentials)
+- [ ] No overly detailed code samples (keep high-level)
+- [ ] Links to external docs instead of duplicating
+- [ ] Information is universally applicable
+- [ ] File stays under 1000 lines
+- [ ] Sections clearly organized
+- [ ] Changes committed to version control
+
+### Example High-Value Sections
+
+**Architecture Decisions (Example):**
+```markdown
+### Monorepo with Turborepo
+**Why**: Share code between services, atomic cross-package changes
+**Trade-off**: Complex initial setup, but 3x faster development
+
+### Go for Backend Instead of Node.js
+**Why**: Need 5000+ TPS for transaction processing
+**Trade-off**: Smaller talent pool, but 3x faster for our use case
+```
+
+**Custom Tools (Example):**
+```markdown
+### scripts/dev.sh
+**Purpose**: Starts entire development environment
+**Usage**: ./scripts/dev.sh
+**What it does**: Starts DB, runs migrations, starts all services
+**When to use**: Beginning of each dev session
+```
+
+**Known Issues (Example):**
+```markdown
+### Transaction Import Race Condition
+**Issue**: Concurrent imports create duplicates
+**Workaround**: Use SELECT ... FOR UPDATE in importTransaction()
+**Status**: Fix scheduled for v2.4.0 (distributed lock)
+**Files**: services/import.go:45
+```
+
+### Benefits of CURSOR.md
+1. **Persistent Memory**: Context survives across Cursor sessions
+2. **Faster Onboarding**: New developers get instant project understanding
+3. **Consistent Behavior**: Cursor follows project-specific patterns
+4. **Reduced Repetition**: No need to explain architecture every session
+5. **Better Decisions**: Cursor understands domain, makes context-aware choices
+6. **Living Documentation**: Stays current as project evolves
+
+### Integration with .cursorrules
+Both files work together:
+- `.cursorrules` = Universal coding standards (how to code)
+- `CURSOR.md` = Project-specific context (what we're building)
+
+---
+
+## 💡 REMEMBER
+
+- **Security**: Always validate inputs, check for vulnerabilities
+- **Completeness**: No placeholders, full implementations
+- **Minimal Diffs**: Don't refactor unrelated code
+- **Ask When Unclear**: 1-3 targeted questions if ambiguous
+- **Consistency**: Match project patterns over personal preference
+- **Production-Ready**: Handle errors, edge cases, real-world scenarios
+- **CURSOR.md Maintenance**: Update when architecture, tools, or workflows change
