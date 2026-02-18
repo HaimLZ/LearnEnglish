@@ -700,7 +700,7 @@ const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.2.0.0";
+const VERSION = "1.2.0.1";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
@@ -1065,7 +1065,7 @@ function nextWord() {
   startNewWord();
 }
 
-function startOverGame() {
+function startOverGame(showResetMessage = true) {
   // Reset every accumulated game-progress metric to create a fully fresh session.
   score = 0;
   streak = 0;
@@ -1091,7 +1091,10 @@ function startOverGame() {
   // Ensure any queued or ongoing speech is cancelled before starting the new round.
   speechSynthesis.cancel();
   startNewWord();
-  setFeedback("🔄 Fresh start! Score, streak, words, and attempts were reset.", "info");
+  // Boot-time reset should be silent, while manual Start Over still shows user feedback.
+  if (showResetMessage) {
+    setFeedback("🔄 Fresh start! Score, streak, words, and attempts were reset.", "info");
+  }
 }
 
 function handleKey(e) {
@@ -1473,9 +1476,7 @@ renderVersionBadge();
 createStars();
 initVoices();
 loadPool();
-renderMisspellList();
-updateScoreDisplay();
-startNewWord();
+startOverGame(false);
 </script>
 </body>
 </html>
