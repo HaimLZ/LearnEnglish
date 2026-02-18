@@ -666,7 +666,7 @@ const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.0.0.1";
+const VERSION = "1.0.0.2";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
@@ -686,10 +686,10 @@ let remainingPrompts = [];
 const attemptedPromptKeys = new Set();
 let speechStyleIndex = -1;
 const SPEECH_STYLES = [
-  { rate: 0.8, pitch: 0.95 },
-  { rate: 0.9, pitch: 1.05 },
-  { rate: 0.74, pitch: 1.15 },
-  { rate: 0.86, pitch: 0.9 }
+  { rate: 0.75, pitch: 0.95 },
+  { rate: 0.84, pitch: 1.05 },
+  { rate: 0.7, pitch: 1.15 },
+  { rate: 0.8, pitch: 0.9 }
 ];
 
 // ── Audio (Web Audio API) ──────────────────────
@@ -759,7 +759,7 @@ function initVoices() {
 function getNextSpeechStyle(hasMultipleVoices) {
   if (hasMultipleVoices) {
     // Keep a neutral style when we already rotate by voice identity.
-    return { rate: 0.82, pitch: 1.05 };
+    return { rate: 0.77, pitch: 1.05 };
   }
 
   // With a single voice, rotate rate/pitch presets so each press sounds different.
