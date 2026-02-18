@@ -206,7 +206,7 @@
   .action-row {
     width: 100%;
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 10px;
   }
   .action-row .speak-btn {
@@ -585,7 +585,7 @@
       <div class="action-row">
         <button class="speak-btn" id="speakBtn" onclick="speakWord()">
           <span class="speaker-icon">🔊</span>
-          <span>Hear the Word</span>
+          <span>Hear</span>
         </button>
         <button class="speak-btn" onclick="startOverGame()">
           <span>🔄</span>
@@ -700,7 +700,7 @@ const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.1.0.5";
+const VERSION = "1.1.0.6";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
