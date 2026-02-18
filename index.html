@@ -190,7 +190,7 @@
     border-radius: 999px;
     padding: 14px 32px;
     font-family: 'Baloo 2', cursive;
-    font-size: 1.2rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: #1a1a1a;
     display: flex; align-items: center; gap: 10px;
@@ -528,7 +528,7 @@
 
   @media (max-width: 400px) {
     .letter-box { width: 30px; height: 30px; font-size: 1rem; }
-    .speak-btn { padding: 12px 22px; font-size: 1rem; }
+    .speak-btn { padding: 12px 22px; font-size: 0.75rem; }
   }
   @media (max-width: 900px) {
     .game-layout { grid-template-columns: 1fr; }
@@ -690,7 +690,7 @@ const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.1.0.1";
+const VERSION = "1.1.0.2";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
@@ -932,7 +932,7 @@ function buildShareScoreImageFile() {
 }
 
 async function shareFinalScore() {
-  const shareText = `My Word Wizard Score Is ${finalChallengeScore}!`;
+  const shareText = `My Word Wizard Score Is ${finalChallengeScore}! Can you beat me? https://haimlz.github.io/LearnEnglish/`;
   const shareImage = await buildShareScoreImageFile();
 
   // Try rich share first so devices can attach the score image automatically.
