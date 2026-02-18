@@ -228,6 +228,35 @@
   .feedback.bad  { background: rgba(239,68,68,0.15);  color: #f87171; }
   .feedback.info { background: rgba(245,158,11,0.1);  color: #fbbf24; }
 
+  /* Step tracker */
+  .steps-track {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .step-pill {
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 8px 10px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+  .step-pill.active {
+    border-color: rgba(245,158,11,0.75);
+    color: #fde68a;
+    background: rgba(245,158,11,0.18);
+  }
+  .step-pill.done {
+    border-color: rgba(16,185,129,0.7);
+    color: #6ee7b7;
+    background: rgba(16,185,129,0.18);
+  }
+
   /* Stage options (V1/V2 + Hebrew meaning) */
   .stage-section {
     width: 100%;
@@ -447,6 +476,12 @@
 
     <div class="feedback" id="feedback">Press 🔊 to hear the word, then spell it!</div>
 
+    <div class="steps-track" id="stepsTrack">
+      <div class="step-pill active" id="stepSpell">1) Spell</div>
+      <div class="step-pill" id="stepTense">2) V1 / V2</div>
+      <div class="step-pill" id="stepHebrew">3) Hebrew</div>
+    </div>
+
     <div class="stage-section" id="tenseSection">
       <div class="stage-label">Choose the correct form:</div>
       <div class="options-grid" id="tenseOptions"></div>
@@ -536,6 +571,8 @@ let streak = 0;
 let wordsPlayed = 0;
 let wordPlayed = false; // The user must hear the spoken word before typing.
 let stage = "spelling"; // spelling -> tense -> hebrew -> complete
+let englishVoices = [];
+let lastVoiceURI = "";
 
 // ── Audio (Web Audio API) ──────────────────────
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -576,6 +613,29 @@ function playTone(type) {
 }
 
 // ── TTS ────────────────────────────────────────
+function refreshEnglishVoices() {
+  // Restrict the pool to English voices because all prompts are English verbs.
+  const allVoices = speechSynthesis.getVoices();
+  englishVoices = allVoices.filter((voice) => (voice.lang || "").toLowerCase().startsWith("en"));
+}
+
+function getRotatingVoice() {
+  if (englishVoices.length === 0) refreshEnglishVoices();
+  if (englishVoices.length === 0) return null;
+  if (englishVoices.length === 1) return englishVoices[0];
+
+  // Keep pressing "Hear the Word" fresh by avoiding the same voice twice in a row.
+  const candidates = englishVoices.filter((voice) => voice.voiceURI !== lastVoiceURI);
+  const voice = candidates[Math.floor(Math.random() * candidates.length)];
+  return voice || englishVoices[0];
+}
+
+function initVoices() {
+  // Browser voices may load asynchronously, so we refresh now and whenever they change.
+  refreshEnglishVoices();
+  speechSynthesis.onvoiceschanged = () => refreshEnglishVoices();
+}
+
 function speakWord() {
   if (!currentPromptWord) return;
   wordPlayed = true;
@@ -584,9 +644,16 @@ function speakWord() {
 
   // The spoken prompt always matches the randomly chosen visible target (V1 or V2).
   const utt = new SpeechSynthesisUtterance(currentPromptWord);
+  const selectedVoice = getRotatingVoice();
+  if (selectedVoice) {
+    utt.voice = selectedVoice;
+    utt.lang = selectedVoice.lang || "en-US";
+    lastVoiceURI = selectedVoice.voiceURI;
+  } else {
+    utt.lang = "en-US";
+  }
   utt.rate = 0.82;
   utt.pitch = 1.05;
-  utt.lang = "en-US";
   utt.onend = () => btn.classList.remove("speaking");
   utt.onerror = () => btn.classList.remove("speaking");
   speechSynthesis.cancel();
@@ -612,6 +679,28 @@ function resetStageUI() {
   document.getElementById("nextInlineBtn").style.display = "none";
 }
 
+function updateStepIndicator() {
+  const stepSpell = document.getElementById("stepSpell");
+  const stepTense = document.getElementById("stepTense");
+  const stepHebrew = document.getElementById("stepHebrew");
+  const orderedSteps = [
+    { key: "spelling", el: stepSpell },
+    { key: "tense", el: stepTense },
+    { key: "hebrew", el: stepHebrew }
+  ];
+
+  // The tracker marks previous steps as done and highlights the current step.
+  const currentIndex = stage === "complete"
+    ? orderedSteps.length
+    : orderedSteps.findIndex((item) => item.key === stage);
+
+  orderedSteps.forEach((item, index) => {
+    item.el.classList.remove("active", "done");
+    if (currentIndex > index) item.el.classList.add("done");
+    if (currentIndex === index) item.el.classList.add("active");
+  });
+}
+
 function startNewWord() {
   currentEntry = pickEntry();
   currentPromptForm = Math.random() < 0.5 ? "v1" : "v2";
@@ -620,6 +709,7 @@ function startNewWord() {
   failures = 0;
   wordPlayed = false;
   stage = "spelling";
+  updateStepIndicator();
 
   resetStageUI();
   renderFailureDots();
@@ -665,6 +755,7 @@ function checkWord() {
     playTone("win");
     input.classList.add("correct-flash");
     stage = "tense";
+    updateStepIndicator();
     renderTenseOptions();
     setFeedback("✅ Correct spelling! Now choose the right form (V1 or V2).", "good");
   } else {
@@ -727,6 +818,7 @@ function chooseTense(selectedForm, clickedBtn) {
 
   playTone("win");
   stage = "hebrew";
+  updateStepIndicator();
   renderHebrewOptions();
   setFeedback("✅ Great! Now pick the matching Hebrew meaning.", "good");
 }
@@ -782,6 +874,7 @@ function chooseHebrew(selectedMeaning, clickedBtn) {
   });
 
   stage = "complete";
+  updateStepIndicator();
   document.getElementById("wordInput").disabled = true;
   document.getElementById("nextInlineBtn").style.display = "block";
   setFeedback("🎉 Perfect! Spelling, form, and meaning are all correct.", "good");
@@ -946,6 +1039,7 @@ function savePool() {
 
 // ── Boot ───────────────────────────────────────
 createStars();
+initVoices();
 loadPool();
 updateScoreDisplay();
 startNewWord();
