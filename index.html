@@ -428,6 +428,11 @@
     letter-spacing: 4px;
   }
   .modal p { color: var(--muted); margin-bottom: 24px; font-size: 0.95rem; }
+  .modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
   .next-btn {
     background: linear-gradient(135deg, #f59e0b, #fbbf24);
     border: none; cursor: pointer;
@@ -442,6 +447,11 @@
     width: 100%;
   }
   .next-btn:hover { transform: scale(1.04); }
+  .share-btn {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color: #052e16;
+    box-shadow: 0 4px 20px rgba(16,185,129,0.35);
+  }
 
   /* Confetti */
   .confetti-piece {
@@ -532,6 +542,19 @@
 <div class="version-badge" id="versionBadge"></div>
 <div class="stars" id="stars"></div>
 
+<!-- Challenge complete overlay is used instead of alert(), so we can provide share + restart actions. -->
+<div class="overlay" id="challengeOverlay">
+  <div class="modal">
+    <div class="emoji">🏁</div>
+    <h2>Challenge Complete!</h2>
+    <p>Your Final Score: <strong id="challengeFinalScore">0</strong></p>
+    <div class="modal-actions">
+      <button class="next-btn share-btn" onclick="shareFinalScore()">Share Score</button>
+      <button class="next-btn" onclick="dismissChallengeCompleteAndRestart()">Start Over</button>
+    </div>
+  </div>
+</div>
+
 <div class="container">
   <header>
     <h1>✨ Word Wizard</h1>
@@ -620,45 +643,45 @@
 //  WORD POOL (V1, V2, Hebrew)
 // ──────────────────────────────────────────────
 const DEFAULT_WORDS = [
-  { v1: "Sit",     v2: "Sat",     hebrew: "לשבת" },
-  { v1: "Drink",   v2: "Drank",   hebrew: "לשתות" },
-  { v1: "Sing",    v2: "Sang",    hebrew: "לשיר" },
-  { v1: "Swim",    v2: "Swam",    hebrew: "לשחות" },
-  { v1: "Begin",   v2: "Began",   hebrew: "להתחיל" },
-  { v1: "Give",    v2: "Gave",    hebrew: "לתת" },
-  { v1: "Get",     v2: "Got",     hebrew: "לקבל" },
-  { v1: "Forget",  v2: "Forgot",  hebrew: "לשכוח" },
-  { v1: "Shoot",   v2: "Shot",    hebrew: "לירות" },
-  { v1: "Fly",     v2: "Flew",    hebrew: "לטוס/לעוף" },
-  { v1: "Draw",    v2: "Drew",    hebrew: "לצייר" },
-  { v1: "Throw",   v2: "Threw",   hebrew: "לזרוק" },
-  { v1: "Grow",    v2: "Grew",    hebrew: "לגדול/לגדל" },
-  { v1: "Know",    v2: "Knew",    hebrew: "לדעת/להכיר" },
-  { v1: "Blow",    v2: "Blew",    hebrew: "לנשוב/לנשוף" },
-  { v1: "Break",   v2: "Broke",   hebrew: "לשבור" },
-  { v1: "Speak",   v2: "Spoke",   hebrew: "לדבר" },
-  { v1: "Write",   v2: "Wrote",   hebrew: "לכתוב" },
-  { v1: "Drive",   v2: "Drove",   hebrew: "לנהוג/לנסוע" },
-  { v1: "Ride",    v2: "Rode",    hebrew: "לרכב" },
-  { v1: "Steal",   v2: "Stole",   hebrew: "לגנוב" },
-  { v1: "Wake",    v2: "Woke",    hebrew: "להתעורר" },
-  { v1: "Wear",    v2: "Wore",    hebrew: "ללבוש" },
-  { v1: "Lose",    v2: "Lost",    hebrew: "להפסיד" },
-  { v1: "Win",     v2: "Won",     hebrew: "לנצח" },
-  { v1: "Run",     v2: "Ran",     hebrew: "לרוץ" },
-  { v1: "Buy",     v2: "Bought",  hebrew: "לקנות" },
-  { v1: "Bring",   v2: "Brought", hebrew: "להביא" },
-  { v1: "Fight",   v2: "Fought",  hebrew: "לריב/להילחם" },
-  { v1: "Think",   v2: "Thought", hebrew: "לחשוב" },
-  { v1: "Go",      v2: "Went",    hebrew: "ללכת" },
-  { v1: "Have",    v2: "Had",     hebrew: "פועל שייכות" },
-  { v1: "Take",    v2: "Took",    hebrew: "לקחת" },
-  { v1: "See",     v2: "Saw",     hebrew: "לראות" },
-  { v1: "Hear",    v2: "Heard",   hebrew: "לשמוע" },
-  { v1: "Make",    v2: "Made",    hebrew: "להכין" },
-  { v1: "Do",      v2: "Did",     hebrew: "לעשות" },
-  { v1: "Find",    v2: "Found",   hebrew: "למצוא" },
-  { v1: "Eat",     v2: "Ate",     hebrew: "לאכול" },
+//  { v1: "Sit",     v2: "Sat",     hebrew: "לשבת" },
+//  { v1: "Drink",   v2: "Drank",   hebrew: "לשתות" },
+//  { v1: "Sing",    v2: "Sang",    hebrew: "לשיר" },
+//  { v1: "Swim",    v2: "Swam",    hebrew: "לשחות" },
+//  { v1: "Begin",   v2: "Began",   hebrew: "להתחיל" },
+//  { v1: "Give",    v2: "Gave",    hebrew: "לתת" },
+//  { v1: "Get",     v2: "Got",     hebrew: "לקבל" },
+//  { v1: "Forget",  v2: "Forgot",  hebrew: "לשכוח" },
+//  { v1: "Shoot",   v2: "Shot",    hebrew: "לירות" },
+//  { v1: "Fly",     v2: "Flew",    hebrew: "לטוס/לעוף" },
+//  { v1: "Draw",    v2: "Drew",    hebrew: "לצייר" },
+//  { v1: "Throw",   v2: "Threw",   hebrew: "לזרוק" },
+//  { v1: "Grow",    v2: "Grew",    hebrew: "לגדול/לגדל" },
+//  { v1: "Know",    v2: "Knew",    hebrew: "לדעת/להכיר" },
+//  { v1: "Blow",    v2: "Blew",    hebrew: "לנשוב/לנשוף" },
+//  { v1: "Break",   v2: "Broke",   hebrew: "לשבור" },
+//  { v1: "Speak",   v2: "Spoke",   hebrew: "לדבר" },
+//  { v1: "Write",   v2: "Wrote",   hebrew: "לכתוב" },
+//  { v1: "Drive",   v2: "Drove",   hebrew: "לנהוג/לנסוע" },
+//  { v1: "Ride",    v2: "Rode",    hebrew: "לרכב" },
+//  { v1: "Steal",   v2: "Stole",   hebrew: "לגנוב" },
+//  { v1: "Wake",    v2: "Woke",    hebrew: "להתעורר" },
+//  { v1: "Wear",    v2: "Wore",    hebrew: "ללבוש" },
+//  { v1: "Lose",    v2: "Lost",    hebrew: "להפסיד" },
+//  { v1: "Win",     v2: "Won",     hebrew: "לנצח" },
+//  { v1: "Run",     v2: "Ran",     hebrew: "לרוץ" },
+//  { v1: "Buy",     v2: "Bought",  hebrew: "לקנות" },
+//  { v1: "Bring",   v2: "Brought", hebrew: "להביא" },
+//  { v1: "Fight",   v2: "Fought",  hebrew: "לריב/להילחם" },
+//  { v1: "Think",   v2: "Thought", hebrew: "לחשוב" },
+//  { v1: "Go",      v2: "Went",    hebrew: "ללכת" },
+//  { v1: "Have",    v2: "Had",     hebrew: "פועל שייכות" },
+//  { v1: "Take",    v2: "Took",    hebrew: "לקחת" },
+//  { v1: "See",     v2: "Saw",     hebrew: "לראות" },
+//  { v1: "Hear",    v2: "Heard",   hebrew: "לשמוע" },
+//  { v1: "Make",    v2: "Made",    hebrew: "להכין" },
+//  { v1: "Do",      v2: "Did",     hebrew: "לעשות" },
+//  { v1: "Find",    v2: "Found",   hebrew: "למצוא" },
+//  { v1: "Eat",     v2: "Ate",     hebrew: "לאכול" },
   { v1: "Lie",     v2: "Lay",     hebrew: "לשקר/לשכב" }
 ];
 
@@ -666,7 +689,7 @@ const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.0.0.2";
+const VERSION = "1.0.0.3";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
@@ -684,6 +707,7 @@ let lastVoiceURI = "";
 const misspellAttemptsByWord = {};
 let remainingPrompts = [];
 const attemptedPromptKeys = new Set();
+let finalChallengeScore = 0;
 let speechStyleIndex = -1;
 const SPEECH_STYLES = [
   { rate: 0.75, pitch: 0.95 },
@@ -832,10 +856,50 @@ function isChallengeComplete() {
 }
 
 function showChallengeCompleteThenRestart() {
-  const finalMessage = `Challenge Complete! Your Final Score: ${score}`;
+  // Store final score before reset so both UI and share action use the same value.
+  finalChallengeScore = score;
+  const finalMessage = `Challenge Complete! Your Final Score: ${finalChallengeScore}`;
   setFeedback(finalMessage, "good");
-  alert(finalMessage);
-  // After the message is dismissed, we run the same full reset flow as Start Over.
+
+  const overlay = document.getElementById("challengeOverlay");
+  const finalScoreEl = document.getElementById("challengeFinalScore");
+  if (finalScoreEl) finalScoreEl.textContent = String(finalChallengeScore);
+  if (overlay) overlay.classList.add("active");
+}
+
+async function shareFinalScore() {
+  const shareText = `My Word Wizard Score Is ${finalChallengeScore}!`;
+
+  // Try native share first for mobile-friendly share sheets.
+  if (navigator.share) {
+    try {
+      await navigator.share({ text: shareText });
+      return;
+    } catch (error) {
+      // If the user cancels sharing, keep silent; otherwise continue to fallback copy.
+      if (error && error.name === "AbortError") return;
+    }
+  }
+
+  // Clipboard fallback keeps sharing useful on browsers without navigator.share support.
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setFeedback("📋 Score text copied! Paste it anywhere to share.", "info");
+      return;
+    } catch {
+      // Continue to the final fallback if clipboard write fails.
+    }
+  }
+
+  // Final fallback guarantees the user can still copy the exact text manually.
+  prompt("Copy and share your score:", shareText);
+}
+
+function dismissChallengeCompleteAndRestart() {
+  const overlay = document.getElementById("challengeOverlay");
+  if (overlay) overlay.classList.remove("active");
+  // Once dismissed, we run the same full reset flow as Start Over.
   startOverGame();
 }
 
@@ -926,6 +990,7 @@ function startOverGame() {
   stage = "spelling";
   speechStyleIndex = -1;
   currentPromptKey = "";
+  finalChallengeScore = 0;
   localStorage.removeItem(SCORE_KEY);
 
   // Clear all tracked misspellings so historical side data also starts clean.
