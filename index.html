@@ -665,23 +665,25 @@ const DEFAULT_WORDS = [
 const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
-// VERSION is centralized here so every build can update one value and the UI reflects it automatically.
-const VERSION = "1.0.0";
+// VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
+const VERSION = "1.0.0.1";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
 let currentEntry = null;
 let currentPromptForm = "v1";
 let currentPromptWord = "";
+let currentPromptKey = "";
 let failures = 0;
 let score = parseInt(localStorage.getItem(SCORE_KEY) || "0", 10);
 let streak = 0;
-let wordsPlayed = 0;
 let wordPlayed = false; // The user must hear the spoken word before typing.
 let stage = "spelling"; // spelling -> tense -> hebrew -> complete
 let englishVoices = [];
 let lastVoiceURI = "";
 const misspellAttemptsByWord = {};
+let remainingPrompts = [];
+const attemptedPromptKeys = new Set();
 let speechStyleIndex = -1;
 const SPEECH_STYLES = [
   { rate: 0.8, pitch: 0.95 },
@@ -795,10 +797,46 @@ function speakWord() {
 }
 
 // ── Game logic ─────────────────────────────────
-function pickEntry() {
-  if (wordPool.length === 0) return { ...DEFAULT_WORDS[0] };
-  const idx = Math.floor(Math.random() * wordPool.length);
-  return wordPool[idx];
+function getTotalPromptCount() {
+  // Each pool row contributes two unique challenge prompts: V1 and V2.
+  return wordPool.length * 2;
+}
+
+function buildPromptDeck() {
+  remainingPrompts = [];
+  attemptedPromptKeys.clear();
+
+  // Build a non-repeating challenge deck where V1 and V2 are separate prompts.
+  wordPool.forEach((entry, index) => {
+    const v1Word = String(entry.v1 || "").trim().toLowerCase();
+    const v2Word = String(entry.v2 || "").trim().toLowerCase();
+    if (v1Word) {
+      remainingPrompts.push({ key: `${index}-v1`, entry, form: "v1", promptWord: v1Word });
+    }
+    if (v2Word) {
+      remainingPrompts.push({ key: `${index}-v2`, entry, form: "v2", promptWord: v2Word });
+    }
+  });
+}
+
+function pickPrompt() {
+  if (remainingPrompts.length === 0) return null;
+  const idx = Math.floor(Math.random() * remainingPrompts.length);
+  const prompt = remainingPrompts.splice(idx, 1)[0];
+  attemptedPromptKeys.add(prompt.key);
+  return prompt;
+}
+
+function isChallengeComplete() {
+  return attemptedPromptKeys.size >= getTotalPromptCount();
+}
+
+function showChallengeCompleteThenRestart() {
+  const finalMessage = `Challenge Complete! Your Final Score: ${score}`;
+  setFeedback(finalMessage, "good");
+  alert(finalMessage);
+  // After the message is dismissed, we run the same full reset flow as Start Over.
+  startOverGame();
 }
 
 function resetStageUI() {
@@ -833,14 +871,23 @@ function updateStepIndicator() {
 }
 
 function startNewWord() {
-  currentEntry = pickEntry();
-  currentPromptForm = Math.random() < 0.5 ? "v1" : "v2";
-  currentPromptWord = (currentEntry[currentPromptForm] || "").toLowerCase().trim();
+  const nextPrompt = pickPrompt();
+  if (!nextPrompt) {
+    // Safety guard: if the deck is unexpectedly empty, complete and restart cleanly.
+    showChallengeCompleteThenRestart();
+    return;
+  }
+
+  currentEntry = nextPrompt.entry;
+  currentPromptForm = nextPrompt.form;
+  currentPromptWord = nextPrompt.promptWord;
+  currentPromptKey = nextPrompt.key;
 
   failures = 0;
   wordPlayed = false;
   stage = "spelling";
   updateStepIndicator();
+  updateScoreDisplay();
 
   resetStageUI();
   renderFailureDots();
@@ -862,6 +909,11 @@ function nextWord() {
     delete misspellAttemptsByWord[wordKey];
   });
   renderMisspellList();
+
+  if (remainingPrompts.length === 0) {
+    showChallengeCompleteThenRestart();
+    return;
+  }
   startNewWord();
 }
 
@@ -869,19 +921,22 @@ function startOverGame() {
   // Reset every accumulated game-progress metric to create a fully fresh session.
   score = 0;
   streak = 0;
-  wordsPlayed = 0;
   failures = 0;
   wordPlayed = false;
   stage = "spelling";
   speechStyleIndex = -1;
+  currentPromptKey = "";
   localStorage.removeItem(SCORE_KEY);
-  updateScoreDisplay();
 
   // Clear all tracked misspellings so historical side data also starts clean.
   Object.keys(misspellAttemptsByWord).forEach((wordKey) => {
     delete misspellAttemptsByWord[wordKey];
   });
   renderMisspellList();
+
+  // Rebuild the non-repeating prompt deck so the challenge starts from prompt 1 again.
+  buildPromptDeck();
+  updateScoreDisplay();
 
   // Ensure any queued or ongoing speech is cancelled before starting the new round.
   speechSynthesis.cancel();
@@ -1070,7 +1125,6 @@ function chooseHebrew(selectedMeaning, clickedBtn) {
   playTone("win");
   score += Math.max(1, 10 - failures * 2) + 5;
   streak++;
-  wordsPlayed++;
   localStorage.setItem(SCORE_KEY, score);
   updateScoreDisplay();
   spawnConfetti();
@@ -1083,6 +1137,14 @@ function chooseHebrew(selectedMeaning, clickedBtn) {
   stage = "complete";
   updateStepIndicator();
   document.getElementById("wordInput").disabled = true;
+
+  if (isChallengeComplete()) {
+    // No Next button when final prompt is finished; challenge closes with final score message.
+    document.getElementById("nextInlineBtn").style.display = "none";
+    setTimeout(showChallengeCompleteThenRestart, 120);
+    return;
+  }
+
   document.getElementById("nextInlineBtn").style.display = "block";
   setFeedback("🎉 Perfect! Spelling, form, and meaning are all correct.", "good");
 }
@@ -1128,7 +1190,7 @@ function setFeedback(msg, type) {
 function updateScoreDisplay() {
   document.getElementById("scoreVal").textContent = score;
   document.getElementById("streakVal").textContent = "🔥 " + streak;
-  document.getElementById("wordsVal").textContent = wordsPlayed;
+  document.getElementById("wordsVal").textContent = `${attemptedPromptKeys.size}/${getTotalPromptCount()}`;
 }
 
 // ── Utilities ──────────────────────────────────
@@ -1225,6 +1287,8 @@ function loadPool() {
 
   document.getElementById("poolTextarea").value = serializePool(wordPool);
   document.getElementById("wordCountBadge").textContent = wordPool.length + " verbs";
+  buildPromptDeck();
+  updateScoreDisplay();
 }
 
 function savePool() {
@@ -1241,6 +1305,9 @@ function savePool() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(wordPool));
   document.getElementById("poolTextarea").value = serializePool(wordPool);
   document.getElementById("wordCountBadge").textContent = wordPool.length + " verbs";
+  // Updating the pool changes challenge size, so the non-repeating deck is rebuilt.
+  buildPromptDeck();
+  updateScoreDisplay();
   setFeedback("✅ Word pool saved! (" + wordPool.length + " verbs)", "good");
 }
 
