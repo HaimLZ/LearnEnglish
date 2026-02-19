@@ -872,8 +872,9 @@ const CUSTOM_SENTENCE_BANK = {
 const STORAGE_KEY = "wordwizard_pool_v2";
 const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
+const GAME_STATE_KEY = "wordwizard_game_state_v1";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.3.0.2";
+const VERSION = "1.3.0.3";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
@@ -1045,6 +1046,7 @@ function speakWord() {
 
   speechSynthesis.cancel();
   speechSynthesis.speak(wordUtt);
+  saveGameState();
 
   if (stage === "spelling") setFeedback("Type the word you heard!", "info");
   document.getElementById("wordInput").focus();
@@ -1098,6 +1100,7 @@ function showChallengeCompleteThenRestart() {
   if (finalScoreEl) finalScoreEl.textContent = String(finalChallengeScore);
   if (finalStreakEl) finalStreakEl.textContent = String(finalChallengeStreak);
   if (overlay) overlay.classList.add("active");
+  saveGameState();
 }
 
 function buildShareScoreImageFile() {
@@ -1214,6 +1217,125 @@ function resetStageUI() {
   document.getElementById("nextInlineBtn").style.display = "none";
 }
 
+function saveGameState() {
+  const input = document.getElementById("wordInput");
+  const feedbackEl = document.getElementById("feedback");
+  const overlay = document.getElementById("challengeOverlay");
+
+  // Persist the exact in-progress challenge snapshot so a closed tab can resume seamlessly.
+  const snapshot = {
+    score,
+    streak,
+    failures,
+    stage,
+    wordPlayed,
+    currentPromptForm,
+    currentPromptWord,
+    currentPromptKey,
+    currentEntry,
+    remainingPrompts,
+    attemptedPromptKeys: Array.from(attemptedPromptKeys),
+    finalChallengeScore,
+    finalChallengeStreak,
+    misspellAttemptsByWord,
+    inputValue: input ? input.value : "",
+    feedbackText: feedbackEl ? feedbackEl.textContent : "",
+    feedbackType: feedbackEl ? (feedbackEl.className.replace("feedback", "").trim() || "") : "",
+    challengeOverlayActive: !!(overlay && overlay.classList.contains("active"))
+  };
+
+  localStorage.setItem(GAME_STATE_KEY, JSON.stringify(snapshot));
+}
+
+function clearSavedGameState() {
+  localStorage.removeItem(GAME_STATE_KEY);
+}
+
+function applyStageUIForRestore() {
+  if (stage === "tense") {
+    renderTenseOptions();
+    return;
+  }
+
+  if (stage === "hebrew" || stage === "complete") {
+    renderTenseOptions();
+    Array.from(document.querySelectorAll("#tenseOptions .option-btn")).forEach((btn) => {
+      btn.disabled = true;
+      if (btn.textContent.toLowerCase() === currentPromptForm) btn.classList.add("correct");
+    });
+    renderHebrewOptions();
+  }
+
+  if (stage === "complete") {
+    Array.from(document.querySelectorAll("#hebrewOptions .option-btn")).forEach((btn) => {
+      btn.disabled = true;
+      if (currentEntry && btn.textContent === currentEntry.hebrew) btn.classList.add("correct");
+    });
+    document.getElementById("nextInlineBtn").style.display = "block";
+    document.getElementById("wordInput").disabled = true;
+  }
+}
+
+function restoreGameState() {
+  const raw = localStorage.getItem(GAME_STATE_KEY);
+  if (!raw) return false;
+
+  try {
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== "object") return false;
+    if (!saved.currentPromptWord || !saved.currentEntry || !Array.isArray(saved.remainingPrompts)) return false;
+
+    score = Number(saved.score || 0);
+    streak = Number(saved.streak || 0);
+    failures = Number(saved.failures || 0);
+    stage = String(saved.stage || "spelling");
+    wordPlayed = !!saved.wordPlayed;
+    currentPromptForm = String(saved.currentPromptForm || "v1");
+    currentPromptWord = String(saved.currentPromptWord || "");
+    currentPromptKey = String(saved.currentPromptKey || "");
+    currentEntry = saved.currentEntry;
+    remainingPrompts = saved.remainingPrompts;
+    finalChallengeScore = Number(saved.finalChallengeScore || 0);
+    finalChallengeStreak = Number(saved.finalChallengeStreak || 0);
+
+    attemptedPromptKeys.clear();
+    (saved.attemptedPromptKeys || []).forEach((key) => attemptedPromptKeys.add(String(key)));
+
+    Object.keys(misspellAttemptsByWord).forEach((key) => delete misspellAttemptsByWord[key]);
+    Object.entries(saved.misspellAttemptsByWord || {}).forEach(([word, attempts]) => {
+      misspellAttemptsByWord[word] = Array.isArray(attempts) ? attempts.map((item) => String(item)) : [];
+    });
+
+    resetStageUI();
+    renderFailureDots();
+    renderHints();
+    renderMisspellList();
+    updateStepIndicator();
+    updateScoreDisplay();
+    applyStageUIForRestore();
+
+    const input = document.getElementById("wordInput");
+    input.value = String(saved.inputValue || "");
+    input.className = "";
+    if (stage !== "complete") input.disabled = false;
+
+    setFeedback(String(saved.feedbackText || "Press 🔊 to hear the word, then spell it!"), saved.feedbackType || "");
+
+    const overlay = document.getElementById("challengeOverlay");
+    const finalScoreEl = document.getElementById("challengeFinalScore");
+    const finalStreakEl = document.getElementById("challengeFinalStreak");
+    if (finalScoreEl) finalScoreEl.textContent = String(finalChallengeScore);
+    if (finalStreakEl) finalStreakEl.textContent = String(finalChallengeStreak);
+    if (overlay) {
+      overlay.classList.toggle("active", !!saved.challengeOverlayActive);
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function updateStepIndicator() {
   const stepSpell = document.getElementById("stepSpell");
   const stepTense = document.getElementById("stepTense");
@@ -1266,6 +1388,7 @@ function startNewWord() {
 
   setFeedback("Press 🔊 to hear the word, then spell it!", "");
   setTimeout(speakWord, 500);
+  saveGameState();
 }
 
 function nextWord() {
@@ -1309,10 +1432,12 @@ function startOverGame(showResetMessage = true) {
   // Ensure any queued or ongoing speech is cancelled before starting the new round.
   activeSpeakToken += 1;
   speechSynthesis.cancel();
+  clearSavedGameState();
   startNewWord();
   // Boot-time reset should be silent, while manual Start Over still shows user feedback.
   if (showResetMessage) {
     setFeedback("🔄 Fresh start! Score, streak, words, and attempts were reset.", "info");
+    saveGameState();
   }
 }
 
@@ -1346,6 +1471,7 @@ function checkWord() {
     updateStepIndicator();
     renderTenseOptions();
     setFeedback("✅ Correct spelling! Now choose the right form (V1 or V2).", "good");
+    saveGameState();
   } else {
     failures++;
     // Persist each wrong typed spelling under the active target word for side history review.
@@ -1368,6 +1494,7 @@ function checkWord() {
     renderHints();
 
     if (failures === 3 || failures === 6) setTimeout(speakWord, 400);
+    saveGameState();
   }
 }
 
@@ -1441,6 +1568,7 @@ function chooseTense(selectedForm, clickedBtn) {
     updateScoreDisplay();
     clickedBtn.classList.add("wrong");
     setFeedback("❌ Not this one. Try again: is the spoken word V1 or V2?", "bad");
+    saveGameState();
     return;
   }
 
@@ -1455,6 +1583,7 @@ function chooseTense(selectedForm, clickedBtn) {
   updateStepIndicator();
   renderHebrewOptions();
   setFeedback("✅ Great! Now pick the matching Hebrew meaning.", "good");
+  saveGameState();
 }
 
 function renderHebrewOptions() {
@@ -1490,6 +1619,7 @@ function chooseHebrew(selectedMeaning, clickedBtn) {
     updateScoreDisplay();
     clickedBtn.classList.add("wrong");
     setFeedback("❌ Not the right meaning. Try another option.", "bad");
+    saveGameState();
     return;
   }
 
@@ -1514,11 +1644,13 @@ function chooseHebrew(selectedMeaning, clickedBtn) {
     // No Next button when final prompt is finished; challenge closes with final score message.
     document.getElementById("nextInlineBtn").style.display = "none";
     setTimeout(showChallengeCompleteThenRestart, 120);
+    saveGameState();
     return;
   }
 
   document.getElementById("nextInlineBtn").style.display = "block";
   setFeedback("🎉 Perfect! Spelling, form, and meaning are all correct.", "good");
+  saveGameState();
 }
 
 // ── Hints ──────────────────────────────────────
@@ -1753,6 +1885,7 @@ function savePool() {
   buildPromptDeck();
   updateScoreDisplay();
   setFeedback("✅ Word pool saved! (" + wordPool.length + " verbs)", "good");
+  saveGameState();
 }
 
 function renderVersionBadge() {
@@ -1767,7 +1900,11 @@ renderVersionBadge();
 createStars();
 initVoices();
 loadPool();
-startOverGame(false);
+document.getElementById("wordInput").addEventListener("input", saveGameState);
+window.addEventListener("beforeunload", saveGameState);
+if (!restoreGameState()) {
+  startOverGame(false);
+}
 </script>
 </body>
 </html>
