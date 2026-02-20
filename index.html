@@ -229,6 +229,29 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .start-over-row {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .start-over-mini-btn {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    border: none;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: 'Baloo 2', cursive;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 8px 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 3px 14px rgba(245,158,11,0.28);
+    transition: transform 0.12s;
+  }
+  .start-over-mini-btn:hover { transform: scale(1.03); }
 
   /* Hint area */
   .hint-area {
@@ -549,6 +572,7 @@
     .score-strip { gap: 10px; }
     .speak-btn { padding: 12px 14px; font-size: 0.9rem; }
     .action-row { gap: 8px; }
+    .start-over-mini-btn { font-size: 0.82rem; padding: 7px 13px; }
   }
   @media (max-width: 900px) {
     .game-layout { grid-template-columns: 1fr; }
@@ -595,11 +619,11 @@
       <div class="action-row">
         <button class="speak-btn" id="speakBtn" onclick="speakWord()">
           <span class="speaker-icon">🔊</span>
-          <span>Hear</span>
+          <span>Hear The Word</span>
         </button>
-        <button class="speak-btn" onclick="startOverGame()">
-          <span>🔄</span>
-          <span>Start Over</span>
+        <button class="speak-btn" id="hintBtn" onclick="revealCounterpartHint()">
+          <span>💡</span>
+          <span id="hintBtnLabel">Hint</span>
         </button>
       </div>
 
@@ -636,6 +660,16 @@
       </div>
 
       <button class="next-inline-btn" id="nextInlineBtn" onclick="nextWord()">Next Word →</button>
+      <div class="start-over-row">
+        <button class="start-over-mini-btn" onclick="startOverGame()">
+          <span>🔄</span>
+          <span>Start Over</span>
+        </button>
+        <button class="start-over-mini-btn" onclick="shareFromMainButton()">
+          <span>📤</span>
+          <span>Share</span>
+        </button>
+      </div>
     </div>
 
     <aside class="misspell-card">
@@ -671,7 +705,7 @@ const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 const GAME_STATE_KEY = "wordwizard_game_state_v1";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.3.0.4";
+const VERSION = "1.3.0.11";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
@@ -679,6 +713,7 @@ let currentEntry = null;
 let currentPromptForm = "v1";
 let currentPromptWord = "";
 let currentPromptKey = "";
+let currentHintValue = "";
 let failures = 0;
 let score = parseInt(localStorage.getItem(SCORE_KEY) || "0", 10);
 let streak = 0;
@@ -795,6 +830,24 @@ function pickVariantSentence(entry, formKey) {
   if (!Array.isArray(list) || list.length === 0) return "";
   const idx = Math.floor(Math.random() * list.length);
   return String(list[idx] || "").trim();
+}
+
+function updateHintButton() {
+  const hintLabel = document.getElementById("hintBtnLabel");
+  if (!hintLabel) return;
+  // Button starts as "Hint" and flips to the counterpart form once revealed.
+  hintLabel.textContent = currentHintValue || "Hint";
+}
+
+function revealCounterpartHint() {
+  if (!currentEntry || !currentPromptForm) return;
+  const counterpartForm = currentPromptForm === "v1" ? "v2" : "v1";
+  const counterpartWord = String(currentEntry[counterpartForm] || "").trim();
+  if (!counterpartWord) return;
+  currentHintValue = counterpartWord;
+  updateHintButton();
+  setFeedback(`💡 Hint: counterpart is "${counterpartWord}".`, "info");
+  saveGameState();
 }
 
 function speakWord() {
@@ -998,6 +1051,13 @@ async function shareFinalScore() {
   prompt("Copy and share your score:", shareText);
 }
 
+function shareFromMainButton() {
+  // Use the same share workflow as the challenge-complete modal button.
+  finalChallengeScore = score;
+  finalChallengeStreak = streak;
+  shareFinalScore();
+}
+
 function dismissChallengeCompleteAndRestart() {
   const overlay = document.getElementById("challengeOverlay");
   if (overlay) overlay.classList.remove("active");
@@ -1029,6 +1089,7 @@ function saveGameState() {
     currentPromptForm,
     currentPromptWord,
     currentPromptKey,
+    currentHintValue,
     currentEntry,
     remainingPrompts,
     attemptedPromptKeys: Array.from(attemptedPromptKeys),
@@ -1090,6 +1151,7 @@ function restoreGameState() {
     currentPromptForm = String(saved.currentPromptForm || "v1");
     currentPromptWord = String(saved.currentPromptWord || "");
     currentPromptKey = String(saved.currentPromptKey || "");
+    currentHintValue = String(saved.currentHintValue || "");
     currentEntry = saved.currentEntry;
     remainingPrompts = saved.remainingPrompts;
     finalChallengeScore = Number(saved.finalChallengeScore || 0);
@@ -1109,6 +1171,7 @@ function restoreGameState() {
     renderMisspellList();
     updateStepIndicator();
     updateScoreDisplay();
+    updateHintButton();
     applyStageUIForRestore();
 
     const input = document.getElementById("wordInput");
@@ -1167,12 +1230,14 @@ function startNewWord() {
   currentPromptForm = nextPrompt.form;
   currentPromptWord = nextPrompt.promptWord;
   currentPromptKey = nextPrompt.key;
+  currentHintValue = "";
 
   failures = 0;
   wordPlayed = false;
   stage = "spelling";
   updateStepIndicator();
   updateScoreDisplay();
+  updateHintButton();
 
   resetStageUI();
   renderFailureDots();
@@ -1212,6 +1277,7 @@ function startOverGame(showResetMessage = true) {
   stage = "spelling";
   speechStyleIndex = -1;
   currentPromptKey = "";
+  currentHintValue = "";
   finalChallengeScore = 0;
   finalChallengeStreak = 0;
   localStorage.removeItem(SCORE_KEY);
