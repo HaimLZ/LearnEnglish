@@ -600,6 +600,19 @@
   </div>
 </div>
 
+<!-- Start-over confirmation to prevent accidental data loss. -->
+<div class="overlay" id="startOverConfirmOverlay">
+  <div class="modal">
+    <div class="emoji">⚠️</div>
+    <h2>Confirm Reset</h2>
+    <p>You are about to clear all data, are you sure?</p>
+    <div class="modal-actions">
+      <button class="next-btn" onclick="confirmStartOver()">Yes</button>
+      <button class="next-btn share-btn" onclick="cancelStartOver()">No</button>
+    </div>
+  </div>
+</div>
+
 <div class="container">
   <header>
     <h1>✨ Word Wizard</h1>
@@ -661,7 +674,7 @@
 
       <button class="next-inline-btn" id="nextInlineBtn" onclick="nextWord()">Next Word →</button>
       <div class="start-over-row">
-        <button class="start-over-mini-btn" onclick="startOverGame()">
+        <button class="start-over-mini-btn" onclick="requestStartOver()">
           <span>🔄</span>
           <span>Start Over</span>
         </button>
@@ -705,7 +718,7 @@ const SCORE_KEY   = "wordwizard_score";
 const LEGACY_STORAGE_KEY = "wordwizard_pool";
 const GAME_STATE_KEY = "wordwizard_game_state_v1";
 // VERSION follows Major.Minor.Build.Revision and Revision increments on each code change.
-const VERSION = "1.3.0.11";
+const VERSION = "1.3.0.12";
 
 // ── State ──────────────────────────────────────
 let wordPool = [];
@@ -1065,6 +1078,24 @@ function dismissChallengeCompleteAndRestart() {
   startOverGame();
 }
 
+function requestStartOver() {
+  // This explicit confirmation step protects in-progress work from accidental reset taps.
+  const overlay = document.getElementById("startOverConfirmOverlay");
+  if (overlay) overlay.classList.add("active");
+}
+
+function confirmStartOver() {
+  const overlay = document.getElementById("startOverConfirmOverlay");
+  if (overlay) overlay.classList.remove("active");
+  startOverGame();
+}
+
+function cancelStartOver() {
+  // Choosing "No" keeps gameplay exactly as-is and just dismisses the warning.
+  const overlay = document.getElementById("startOverConfirmOverlay");
+  if (overlay) overlay.classList.remove("active");
+}
+
 function resetStageUI() {
   // Keep all stage containers hidden until the relevant step is reached.
   document.getElementById("tenseSection").classList.remove("active");
@@ -1078,6 +1109,7 @@ function saveGameState() {
   const input = document.getElementById("wordInput");
   const feedbackEl = document.getElementById("feedback");
   const overlay = document.getElementById("challengeOverlay");
+  const startOverConfirmOverlay = document.getElementById("startOverConfirmOverlay");
 
   // Persist the exact in-progress challenge snapshot so a closed tab can resume seamlessly.
   const snapshot = {
@@ -1099,7 +1131,8 @@ function saveGameState() {
     inputValue: input ? input.value : "",
     feedbackText: feedbackEl ? feedbackEl.textContent : "",
     feedbackType: feedbackEl ? (feedbackEl.className.replace("feedback", "").trim() || "") : "",
-    challengeOverlayActive: !!(overlay && overlay.classList.contains("active"))
+    challengeOverlayActive: !!(overlay && overlay.classList.contains("active")),
+    startOverConfirmOverlayActive: !!(startOverConfirmOverlay && startOverConfirmOverlay.classList.contains("active"))
   };
 
   localStorage.setItem(GAME_STATE_KEY, JSON.stringify(snapshot));
@@ -1182,12 +1215,16 @@ function restoreGameState() {
     setFeedback(String(saved.feedbackText || "Press 🔊 to hear the word, then spell it!"), saved.feedbackType || "");
 
     const overlay = document.getElementById("challengeOverlay");
+    const startOverConfirmOverlay = document.getElementById("startOverConfirmOverlay");
     const finalScoreEl = document.getElementById("challengeFinalScore");
     const finalStreakEl = document.getElementById("challengeFinalStreak");
     if (finalScoreEl) finalScoreEl.textContent = String(finalChallengeScore);
     if (finalStreakEl) finalStreakEl.textContent = String(finalChallengeStreak);
     if (overlay) {
       overlay.classList.toggle("active", !!saved.challengeOverlayActive);
+    }
+    if (startOverConfirmOverlay) {
+      startOverConfirmOverlay.classList.toggle("active", !!saved.startOverConfirmOverlayActive);
     }
 
     return true;
@@ -1294,6 +1331,8 @@ function startOverGame(showResetMessage = true) {
 
   // Ensure any queued or ongoing speech is cancelled before starting the new round.
   activeSpeakToken += 1;
+  const startOverConfirmOverlay = document.getElementById("startOverConfirmOverlay");
+  if (startOverConfirmOverlay) startOverConfirmOverlay.classList.remove("active");
   speechSynthesis.cancel();
   clearSavedGameState();
   startNewWord();
